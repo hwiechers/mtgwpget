@@ -6,6 +6,7 @@ import os.path
 import re
 import sys
 import urllib.request
+import urllib.parse
 import xml.parsers.expat
 import time
 
@@ -15,7 +16,8 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin
 
 WALLPAPER_LIST_URL = 'http://magic.wizards.com/en/articles/wallpapers' 
-WALLPAPER_PATH = '~/_Home/Wallpaper/'
+
+wallpaper_dir = Path(os.path.expanduser('~/Pictures'))
 
 def nowstr():
     return str(datetime.now())
@@ -63,10 +65,10 @@ def download_latest_unused_wallpaper():
 
     for url in urls:
         filename = url.split('/')[-1]
-        local_path = os.path.join(os.path.expanduser(WALLPAPER_PATH), filename)
-        if not os.path.exists(local_path):
+        local_path = wallpaper_dir / filename
+        if not local_path.exists():
             try:
-                print_('Downloading ' + url + ' to ' + WALLPAPER_PATH)
+                print_('Downloading ' + url + ' to ' + str(wallpaper_dir))
                 download_file(url, local_path)
             except urllib.error.HTTPError as error:
                 print_('ERROR: Download failed with HTTP error ' + str(error.code))
@@ -82,7 +84,7 @@ def download_file(url, path):
     downloaded = 0
     chunk_length = int(10E3)
 
-    with open(path, 'wb') as file_:
+    with path.open('wb') as file_:
         while True:
             bytes_ = response.read(chunk_length)
             file_.write(bytes_)
@@ -124,9 +126,19 @@ def get_desktop_wallpaper_path():
             0);
 
         return Path(path_buffer.value)
+    elif os.name == 'posix':
+        #Only Gnome 3 is supported
+        from gi.repository import Gio
+        gsettings = Gio.Settings.new('org.gnome.desktop.background')
+
+        pictureuri = gsettings.get_string('picture-uri')
+        urlpath = urllib.parse.urlparse(pictureuri).path
+        pathname = urllib.request.url2pathname(urlpath)
+
+        return Path(pathname)
     else:
-        #TODO...
-        pass
+        print ('OS not supported')
+        exit(1)
 
 def set_as_desktop_wallpaper(path):
     if os.name == 'nt':
@@ -136,13 +148,18 @@ def set_as_desktop_wallpaper(path):
 
         from ctypes import windll
         windll.user32.SystemParametersInfoW(
-            SPI_SETDESKWALLPAPER, 0, path,
+            SPI_SETDESKWALLPAPER, 0, str(path),
             SPIF_UPDATEINIFILE or SPIF_SENDWININICHANGE)
+    elif os.name == 'posix':
+        #Only Gnome 3 is supported
+        from gi.repository import Gio
+        gsettings = Gio.Settings.new('org.gnome.desktop.background')
+        gsettings.set_string('picture-uri', path.as_uri())
+        gsettings.apply()
     else:
-        cmd = ('ln -sf {} {}'.format(
-            path,
-            os.path.join(WALLPAPER_PATH, 'current')))
-        os.system(cmd)
+        print ('OS not supported')
+        exit(1)
+
 
 def set_latest_wallpaper_as_desktop():
     print_('Starting wallpaper refresh')
