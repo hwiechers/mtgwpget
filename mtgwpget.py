@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import collections
 import datetime
 import math
@@ -10,12 +12,20 @@ import urllib.parse
 import xml.parsers.expat
 import time
 
+import json
+
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
-WALLPAPER_LIST_URL = 'http://magic.wizards.com/en/articles/wallpapers' 
+WALLPAPER_LIST_URL_TEMPLATE = (
+    'http://magic.wizards.com/see-more-wallpaper'
+    '?page={}&filter_by=DESC&search=')
+
+WALLPAPER_BASE_URL = (
+    'http://magic.wizards.com/sites/mtg/'
+    'files/images/wallpaper/')
 
 wallpaper_dir = Path(os.path.expanduser('~/Pictures'))
 
@@ -25,7 +35,7 @@ def nowstr():
 def print_(message):
     print(nowstr() + ' ' + message)
 
-def get_wallpaper_urls(wallpaper_list_url):
+def get_wallpaper_urls(pagenum):
     
     class WallpaperUrlSearcher(HTMLParser):
         def __init__(self):
@@ -41,38 +51,42 @@ def get_wallpaper_urls(wallpaper_list_url):
                 return 
 
             href = hrefs[0]
-            if (href.startswith('http://magic.wizards.com/sites/mtg/' + 
-                               'files/images/wallpaper/') 
+            if (href.startswith(WALLPAPER_BASE_URL) 
                 and '1920x1080' in href
                 and href.endswith('.jpg')):
-                self.urls.append(urljoin(wallpaper_list_url, href))
+                self.urls.append(href)
 
-    pagestring = open_page(wallpaper_list_url)
+    pagestring = get_wallpaper_article_page(pagenum)
 
     linkfinder = WallpaperUrlSearcher()
     linkfinder.feed(pagestring)
 
     return linkfinder.urls
 
-def open_page(url):
+def get_wallpaper_article_page(pagenum):
+    url = WALLPAPER_LIST_URL_TEMPLATE.format(pagenum)
     print_('Opening ' + url)
     response = urllib.request.urlopen(url)
-    charset = response.headers.get_content_charset()
-    return response.read().decode(charset)
+    resp_string = response.read().decode('utf8')
+    resp_json = json.loads(resp_string)
+    return resp_json['data']
 
 def download_latest_unused_wallpaper():
-    urls = get_wallpaper_urls(WALLPAPER_LIST_URL)
 
-    for url in urls:
-        filename = url.split('/')[-1]
-        local_path = wallpaper_dir / filename
-        if not local_path.exists():
-            try:
-                print_('Downloading ' + url + ' to ' + str(wallpaper_dir))
-                download_file(url, local_path)
-            except urllib.error.HTTPError as error:
-                print_('ERROR: Download failed with HTTP error ' + str(error.code))
-            return local_path
+    for pagenum in range(1, 11):
+        urls = get_wallpaper_urls(pagenum)
+        for url in urls:
+            filename = url.split('/')[-1]
+            local_path = wallpaper_dir / filename
+            if not local_path.exists():
+                try:
+                    print_('Downloading ' + url + ' to ' + str(wallpaper_dir))
+                    download_file(url, local_path)
+                except urllib.error.HTTPError as error:
+                    print_('ERROR: Download failed with HTTP error ' + str(error.code))
+                return local_path
+            else:
+                print(filename + 'already used. Getting next.')
 
 def download_file(url, path):
     filename = url.split('/')[-1]
@@ -129,6 +143,7 @@ def get_desktop_wallpaper_path():
     elif os.name == 'posix':
         #Only Gnome 3 is supported
         from gi.repository import Gio
+
         gsettings = Gio.Settings.new('org.gnome.desktop.background')
 
         pictureuri = gsettings.get_string('picture-uri')
@@ -159,7 +174,6 @@ def set_as_desktop_wallpaper(path):
     else:
         print ('OS not supported')
         exit(1)
-
 
 def set_latest_wallpaper_as_desktop():
     print_('Starting wallpaper refresh')
