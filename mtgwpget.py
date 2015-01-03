@@ -71,7 +71,7 @@ def get_wallpaper_article_page(pagenum):
     resp_json = json.loads(resp_string)
     return resp_json['data']
 
-def download_latest_unused_wallpaper():
+def download_latest_unused_wallpaper(opts):
 
     for pagenum in range(1, 11):
         urls = get_wallpaper_urls(pagenum)
@@ -81,14 +81,14 @@ def download_latest_unused_wallpaper():
             if not local_path.exists():
                 try:
                     print_('Downloading ' + url + ' to ' + str(wallpaper_dir))
-                    download_file(url, local_path)
+                    download_file(opts, url, local_path)
                 except urllib.error.HTTPError as error:
                     print_('ERROR: Download failed with HTTP error ' + str(error.code))
                 return local_path
             else:
                 print(filename + 'already used. Getting next.')
 
-def download_file(url, path):
+def download_file(opts, url, path):
     filename = url.split('/')[-1]
     response = urllib.request.urlopen(url)
     content_length = int(response.getheader('Content-Length'))
@@ -103,12 +103,13 @@ def download_file(url, path):
             bytes_ = response.read(chunk_length)
             file_.write(bytes_)
 
-            downloaded += len(bytes_)
-            print_progress_bar(60, downloaded, content_length)
+            if opts['--progress']:
+                downloaded += len(bytes_)
+                print_progress_bar(60, downloaded, content_length)
 
-            if len(bytes_) < chunk_length:
-                print('')
-                break
+                if len(bytes_) < chunk_length:
+                    print('')
+                    break
 
 def print_progress_bar(width, current, total):
     sys.stdout.write('\r')
@@ -175,9 +176,9 @@ def set_as_desktop_wallpaper(path):
         print ('OS not supported')
         exit(1)
 
-def set_latest_wallpaper_as_desktop():
+def set_latest_wallpaper_as_desktop(opts):
     print_('Starting wallpaper refresh')
-    path = download_latest_unused_wallpaper()
+    path = download_latest_unused_wallpaper(opts)
     if path: 
         set_as_desktop_wallpaper(path)
     print_('Done')
@@ -187,16 +188,18 @@ def print_usage():
     print("Magic: The Gathering wallpaper download utility")
     print("")
     print("Options:")
-    print("  --force  Skip freshness check on currect wallpaper")
+    print("  --force     Skip freshness check on currect wallpaper")
+    print("  --progress  Show a textual download progress bar")
 
 if __name__ == '__main__':
-    force = False
+    opts = { '--force' : False, '--progress' : False }
+
     for arg in sys.argv[1:]:
-        if arg == '--force':
-            force = True
-        else:
+        if arg not in opts:
             print_usage()
             exit(1)
+
+        opts[arg] = True
 
     _7days = timedelta(days = 7)
 
@@ -204,7 +207,8 @@ if __name__ == '__main__':
     mtime = current.stat().st_mtime
     isfresh = datetime.today() - datetime.fromtimestamp(mtime) < _7days
 
-    if not force and isfresh:
+    if not opts['--force'] and isfresh:
         print('Aborting as the current wallpaper is already fresh')
         exit()
-    set_latest_wallpaper_as_desktop()
+
+    set_latest_wallpaper_as_desktop(opts)
