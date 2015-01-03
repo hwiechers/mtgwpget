@@ -182,10 +182,29 @@ def set_latest_wallpaper_as_desktop():
         set_as_desktop_wallpaper(path)
     print_('Done')
 
+def print_usage():
+    print("mtgwpget")
+    print("Magic: The Gathering wallpaper download utility")
+    print("")
+    print("Options:")
+    print("  --force  Skip freshness check on currect wallpaper")
+
 if __name__ == '__main__':
+    force = False
+    for arg in sys.argv[1:]:
+        if arg == '--force':
+            force = True
+        else:
+            print_usage()
+            exit(1)
+
+    _7days = timedelta(days = 7)
+
     current = get_desktop_wallpaper_path()
     mtime = current.stat().st_mtime
-    if datetime.fromtimestamp(mtime) > datetime.today() - timedelta(days = 7):
+    isfresh = datetime.today() - datetime.fromtimestamp(mtime) < _7days
+
+    if not force and isfresh:
         print('Aborting as the current wallpaper is already fresh')
         exit()
     set_latest_wallpaper_as_desktop()
