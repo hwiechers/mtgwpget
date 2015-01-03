@@ -86,7 +86,7 @@ def download_latest_unused_wallpaper(opts):
                     print_('ERROR: Download failed with HTTP error ' + str(error.code))
                 return local_path
             else:
-                print(filename + 'already used. Getting next.')
+                print('    ' + filename + ' already downloaded')
 
 def download_file(opts, url, path):
     filename = url.split('/')[-1]
