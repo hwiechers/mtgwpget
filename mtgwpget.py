@@ -107,9 +107,10 @@ def download_file(opts, url, path):
                 downloaded += len(bytes_)
                 print_progress_bar(60, downloaded, content_length)
 
-                if len(bytes_) < chunk_length:
+            if len(bytes_) < chunk_length:
+                if opts['--progress']:
                     print('')
-                    break
+                break
 
 def print_progress_bar(width, current, total):
     sys.stdout.write('\r')
