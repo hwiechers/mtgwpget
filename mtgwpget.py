@@ -67,7 +67,7 @@ def get_wallpaper_article_page(pagenum):
     url = WALLPAPER_LIST_URL_TEMPLATE.format(pagenum)
     print_('Opening ' + url)
     response = urllib.request.urlopen(url)
-    resp_string = response.read().decode('utf8')
+    resp_string = response.read().decode('utf-8-sig')
     resp_json = json.loads(resp_string)
     return resp_json['data']
 
