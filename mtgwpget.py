@@ -170,9 +170,12 @@ def set_as_desktop_wallpaper(path):
     elif os.name == 'posix':
         #Only Gnome 3 is supported
         from gi.repository import Gio
-        gsettings = Gio.Settings.new('org.gnome.desktop.background')
-        gsettings.set_string('picture-uri', path.as_uri())
-        gsettings.apply()
+        for setting_path in [
+                'org.gnome.desktop.background',
+                'org.gnome.desktop.screensaver']:
+            gsettings = Gio.Settings.new(setting_path)
+            gsettings.set_string('picture-uri', path.as_uri())
+            gsettings.apply()
     else:
         print ('OS not supported')
         exit(1)
