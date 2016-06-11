@@ -209,10 +209,13 @@ if __name__ == '__main__':
 
     current = get_desktop_wallpaper_path()
     mtime = current.stat().st_mtime
-    isfresh = datetime.today() - datetime.fromtimestamp(mtime) < _7days
+    age = datetime.today() - datetime.fromtimestamp(mtime)
+
+    isfresh = age < _7days
 
     if not opts['--force'] and isfresh:
-        print('Aborting as the current wallpaper is already fresh')
+        print('Aborting as the current wallpaper is still fresh ({})'
+              .format(age))
         exit()
 
     set_latest_wallpaper_as_desktop(opts)
