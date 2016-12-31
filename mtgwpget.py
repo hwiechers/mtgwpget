@@ -27,7 +27,7 @@ WALLPAPER_BASE_URL = (
     'http://magic.wizards.com/sites/mtg/'
     'files/images/wallpaper/')
 
-wallpaper_dir = Path(os.path.expanduser('~/Pictures'))
+wallpaper_dir = Path(os.path.expanduser('~/Pictures/Wallpaper'))
 
 def nowstr():
     return str(datetime.now())
@@ -73,7 +73,7 @@ def get_wallpaper_article_page(pagenum):
 
 def download_latest_unused_wallpaper(opts):
 
-    for pagenum in range(1, 11):
+    for pagenum in range(1, 100):
         urls = get_wallpaper_urls(pagenum)
         for url in urls:
             filename = url.split('/')[-1]
