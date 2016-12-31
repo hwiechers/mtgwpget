@@ -73,7 +73,7 @@ def get_wallpaper_article_page(pagenum):
 
 def download_latest_unused_wallpaper(opts):
 
-    for pagenum in range(1, 100):
+    for pagenum in range(0, 100):
         urls = get_wallpaper_urls(pagenum)
         for url in urls:
             filename = url.split('/')[-1]
